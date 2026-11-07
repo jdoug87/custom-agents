@@ -5,6 +5,9 @@
 #   scripts/          → <target>/.claude/scripts/   (exact mirror; removed files are removed)
 #   templates/*.md    → <target>/docs/templates/    (agile-pm and rfc-author read these)
 #
+# It also seeds, only when missing: <target>/AGENTS.md (from scaffold/AGENTS.md)
+# and the docs/ folders the agents write to (each new one gets a .gitkeep).
+#
 # These are copies, not symlinks, so commit them in the target repo and every
 # checkout and worktree has them. Edit the originals here and re-run this script;
 # use --check to see whether a target has drifted.
@@ -21,7 +24,7 @@ check=0 target=""
 for arg in "$@"; do
   case $arg in
     --check) check=1 ;;
-    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) die "unknown option: $arg" ;;
     *) [[ -z $target ]] || die "only one target repo at a time"; target=$arg ;;
   esac
@@ -65,6 +68,19 @@ cp -p "$SRC"/templates/*.md "$target/docs/templates/"
 # Scripts: an exact mirror, so deleted or renamed scripts don't linger.
 rsync -a --delete --exclude __pycache__ "$SRC/scripts/" "$target/.claude/scripts/"
 
+# Seed what the agents expect but never overwrite: AGENTS.md and the docs/ folders they write to.
+if [[ ! -f $target/AGENTS.md ]]; then
+  cp "$SRC/scaffold/AGENTS.md" "$target/AGENTS.md"
+  log "created $target/AGENTS.md from the scaffold; fill in its TODOs and commit it"
+fi
+for d in rfcs plans adr architecture api incidents security/audits; do
+  dir=$target/docs/$d
+  if [[ ! -d $dir ]]; then
+    mkdir -p "$dir"
+    touch "$dir/.gitkeep"  # git doesn't track empty folders, and agents work in fresh worktrees
+  fi
+done
+
 log "installed $(ls "$SRC"/agents/*.md | wc -l | tr -d ' ') agents, the scripts, and $(ls "$SRC"/templates/*.md | wc -l | tr -d ' ') templates into $target"
 
 # The agents are tuned for Rails; warn about the pieces they rely on.
@@ -73,6 +89,5 @@ if [[ -f $target/config/database.yml ]] && ! grep -q WORKTREE_DB_SUFFIX "$target
   log "note: add WORKTREE_DB_SUFFIX to the development/test database names in config/database.yml"
   log "      so parallel agents get their own databases (see README)"
 fi
-[[ -f $target/AGENTS.md ]] || log "note: no AGENTS.md in $target; the agents read it for stack, commands, and conventions"
 
-git -C "$target" status --short -- .claude docs/templates >&2
+git -C "$target" status --short -- .claude docs AGENTS.md >&2

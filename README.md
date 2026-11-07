@@ -15,6 +15,8 @@ This repo holds the originals. You install them into a **target repo** (your app
 | `agents/*.md` | `.claude/agents/` |
 | `scripts/` | `.claude/scripts/` (exact mirror) |
 | `templates/*.md` | `docs/templates/` |
+| `scaffold/AGENTS.md` | `AGENTS.md` (only if missing) |
+| — | `docs/{rfcs,plans,adr,architecture,api,incidents,security/audits}/` (only if missing, with a `.gitkeep`) |
 
 - These are copies, not symlinks. **Commit them in the target repo**, because every agent works in a fresh git worktree and only committed files show up there.
 - Edit agents and scripts **here**, then re-run `install.sh` on each target. Run `./install.sh <target> --check` to see whether a target has drifted.
@@ -25,7 +27,7 @@ This repo holds the originals. You install them into a **target repo** (your app
 
 The agents assume a Rails app on the omakase stack: Minitest, Capybara/Playwright system tests, Hotwire, Tailwind, Kamal, and `bin/ci`.
 
-1. **`AGENTS.md`** at the root, describing the stack, commands, and conventions. Every agent reads it.
+1. **`AGENTS.md`** at the root, describing the stack, commands, and conventions. Every agent reads it. `install.sh` seeds a starter from `scaffold/AGENTS.md` if there isn't one; fill in its TODOs.
 2. **Per-worktree databases.** Append `WORKTREE_DB_SUFFIX` to the development and test database names in `config/database.yml`, so parallel agents don't share a database:
    ```yaml
    development:
@@ -38,7 +40,7 @@ The agents assume a Rails app on the omakase stack: Minitest, Capybara/Playwrigh
 5. **Staging (optional):** add `config/deploy.staging.yml` and export `STAGING_URL` and `PRODUCTION_URL`.
 6. **Tools:** `gh` (authenticated), `herdr`, `jq`, and `claude`. Optional extras: `brew install gitleaks imagemagick ffmpeg webp`.
 
-`install.sh` warns you about missing pieces from 1 and 2.
+`install.sh` seeds 1 if it's missing and warns you about 2.
 
 ## Running it
 
